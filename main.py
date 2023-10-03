@@ -3,29 +3,31 @@
 
 表示部分
     数字を出す
-数字回り
+内部数字回り
     front_num   表出用数字
     back_num    計算用内部数字
     back_ope    計算用内部演算子
     memory_num  メモリー用保存数字
 ボタン
     数字
-        0~9
-        .(小数点)
+        0~9 .(小数点)
+        back_numなしback_opeありのとき back_num = front_num, front_num = 0
+        else:front_num に入力を追加
     演算子
         +, -, *, /, //, =
-        これの入力が来た時にback_numとback_opeがある
-            計算してback_numにいれる。=ならばfront_numにする
-        無いときはback_opeに演算子を入れる.次の数字が1つ入ったらback_numにfront_numの数字を移す
+        挙動
+            back_numがあるとき   front_num = back_num back_ope front_num, back_num = back_ope = None
+                無いとき        back_ope = 入力
     メモリー機能
         M+ memory_num + front_num
         M- memory_num - front_num
         MR memory_numを出力
         MC memory_numを0にする
     その他
-        AC  front_numとmemory_numの両方を0
+        AC  front_numとback_numの両方を0
         C   front_numのみを0
         DEL front_numの末尾1桁を消す
+
 """
 import tkinter as tk
 
@@ -40,7 +42,7 @@ class Calculator:
         self.frame = tk.Frame(root)
         self.frame.grid(row=0, column=0, padx=15, pady=15)
 
-        self.display_num = tk.IntVar()
+        self.display_num = tk.StringVar()
         self.display_num.set(0)
         self.num_box = tk.Entry(self.frame,
                                 font=("MSゴシック", 32),
@@ -48,8 +50,9 @@ class Calculator:
                                 justify=tk.RIGHT)
         self.num_box.grid(row=0, column=0, columnspan=4)
 
-        self.memory = 0
-        self.back_num = 0
+        self.memory_num = 0
+        self.front_num = "0"
+        self.back_num = None
         self.back_ope = None
         self.is_decimal = False
 
@@ -75,20 +78,61 @@ class Calculator:
         elif x == "MR":
             pass
         elif x == "MC":
-            self.memory = 0
+            self.memory_num = 0
         elif x == "AC":
-            self.display_num = 0
-            self.memory = 0
+            self.front_num = "0"
+            self.back_num = "0"
+            self.back_ope = None
+            self.display_num.set("0")
         elif x == "C":
-            self.display_num = 0
-        elif x == "":pass
+            self.front_num = "0"
+            self.display_num.set("0")
         elif x in {"+", "-", "*", "/", "//", "="}:
-            pass
+            if self.front_num is None:
+                self.back_ope = x
+            elif self.back_num is None:
+                if x == "=":
+                    pass
+                else:
+                    self.back_num = self.front_num
+                    self.back_ope = x
+                    self.front_num = None
+                    self.display_num.set(self.back_num)
+            else:
+                try:
+                    y = eval(self.back_num + self.back_ope + self.front_num)
+                    self.back_num = str(y)
+                    self.display_num.set(self.back_num)
+                    self.front_num = None
+                except ZeroDivisionError:
+                    self.error("ZeroDivisionError")
+
         elif x == ".":
-            pass
+            if self.is_decimal:pass
+            else:
+                self.is_decimal = True
+                if self.front_num is None:
+                    self.front_num = "0."
+                else:
+                    self.front_num += "."
+                self.display_num.set(self.front_num)
+
+        elif x in "0123456789":
+            if self.front_num is None or self.front_num == "0":
+                self.front_num = x
+            else:
+                self.front_num += x
+            self.display_num.set(self.front_num)
+
         else:
             pass
 
+    def error(self, command):
+        if command == "ZeroDivisionError":
+            self.display_num = "0で割ってはいけません"
+            self.front_num = "0"
+            self.back_num = None
+            self.back_ope = None
 
 
 if __name__=="__main__":
