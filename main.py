@@ -45,9 +45,11 @@ class Calculator:
         self.display_num = tk.StringVar()
         self.display_num.set(0)
         self.num_box = tk.Entry(self.frame,
+                                readonlybackground="white",
                                 font=("MSゴシック", 32),
                                 textvariable=self.display_num,
                                 justify=tk.RIGHT)
+        self.num_box.config(state="readonly")
         self.num_box.grid(row=0, column=0, columnspan=4)
 
         self.memory_num = 0
@@ -55,6 +57,7 @@ class Calculator:
         self.back_num = None
         self.back_ope = None
         self.is_decimal = False
+        self.last_is_ope = False
 
         Definition_Button = [["M+","M-","MR","MC"],
                              ["AC", "C","//", "/"],
@@ -72,43 +75,69 @@ class Calculator:
     def push_command(self, e):
         x = e.widget.cget("text")
         if x == "M+":
-            pass
+            self.memory_num = eval(str(self.memory_num)+ "+" + self.front_num)
+
         elif x == "M-":
-            pass
+            self.memory_num = eval(str(self.memory_num) + "-" + self.front_num)
+
         elif x == "MR":
-            pass
+            self.front_num = str(self.memory_num)
+            self.display_num.set(self.front_num)
+
         elif x == "MC":
             self.memory_num = 0
+
         elif x == "AC":
             self.front_num = "0"
-            self.back_num = "0"
+            self.back_num = None
             self.back_ope = None
+            self.is_decimal = False
+            self.last_is_ope = False
             self.display_num.set("0")
+
         elif x == "C":
             self.front_num = "0"
+            self.is_decimal = False
             self.display_num.set("0")
+
+        elif x == "DEL":
+            if len(self.front_num) == 1:
+                self.front_num = "0"
+            else:
+                if self.front_num[-1] == ".":
+                    self.is_decimal = False
+                self.front_num = self.front_num[:-1]
+            self.display_num.set(self.front_num)
+
         elif x in {"+", "-", "*", "/", "//", "="}:
-            if self.front_num is None:
+            if self.last_is_ope:
                 self.back_ope = x
             elif self.back_num is None:
-                if x == "=":
-                    pass
-                else:
-                    self.back_num = self.front_num
-                    self.back_ope = x
-                    self.front_num = None
-                    self.display_num.set(self.back_num)
+                self.last_is_ope = True
+                self.back_num, self.front_num = self.front_num, "0"
+                self.back_ope = x
+                self.is_decimal = False
+                self.display_num.set(self.back_num)
             else:
                 try:
-                    y = eval(self.back_num + self.back_ope + self.front_num)
-                    self.back_num = str(y)
+                    self.back_num = str(eval(self.back_num + self.back_ope + self.front_num))
+                    self.last_is_ope = True
+                    self.front_num = "0"
+                    self.back_ope = x
+                    self.is_decimal = False
                     self.display_num.set(self.back_num)
-                    self.front_num = None
                 except ZeroDivisionError:
-                    self.error("ZeroDivisionError")
+                    self.display_num = "0で割ってはいけません"
+                    self.memory_num = 0
+                    self.front_num = "0"
+                    self.back_num = None
+                    self.back_ope = None
+                    self.is_decimal = False
+                    self.last_is_ope = False
 
         elif x == ".":
-            if self.is_decimal:pass
+            if self.is_decimal:
+                pass
             else:
                 self.is_decimal = True
                 if self.front_num is None:
@@ -118,6 +147,11 @@ class Calculator:
                 self.display_num.set(self.front_num)
 
         elif x in "0123456789":
+            if self.last_is_ope:
+                self.last_is_ope = False
+                if self.back_ope == "=":
+                    self.back_num, self.back_ope = None, None
+
             if self.front_num is None or self.front_num == "0":
                 self.front_num = x
             else:
@@ -127,12 +161,7 @@ class Calculator:
         else:
             pass
 
-    def error(self, command):
-        if command == "ZeroDivisionError":
-            self.display_num = "0で割ってはいけません"
-            self.front_num = "0"
-            self.back_num = None
-            self.back_ope = None
+        # print(self.front_num, self.back_num, self.back_ope, self.is_decimal,self.last_is_ope)
 
 
 if __name__=="__main__":
